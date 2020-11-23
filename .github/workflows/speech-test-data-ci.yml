@@ -175,7 +175,7 @@ jobs:
       # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Get the baseline model
-        if: IS_BASELINE_TEST == 'true'
+        if: ${{ env.IS_BASELINE_TEST == 'true' }}
         run: |
           spx csr model list --base --models --output json baseline_models.json
           jq --arg SPEECH_LOCALE "$SPEECH_LOCALE" '.values[] | select(.locale==$SPEECH_LOCALE).self' baseline_models.json | tr -d \" > baseline_models.txt
@@ -250,7 +250,7 @@ jobs:
       # workflow triggered as the results of a test data update, upload the test
       # summary from the current run of the workflow.
       - name: Update benchmark in configuration file
-        if: IS_BASELINE_TEST != 'true' || BENCHMARK_BLOB_EXISTS == 'false' || INITIAL_MODEL_EXISTS == 'false'
+        if: ${{ env.IS_BASELINE_TEST != 'true' || env.BENCHMARK_BLOB_EXISTS == 'false' || env.INITIAL_MODEL_EXISTS == 'false' }}
         run: |
           echo test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
           az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt --auth-mode login
