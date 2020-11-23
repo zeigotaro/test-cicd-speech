@@ -347,7 +347,7 @@ jobs:
       # Get NEW_WER from the newly-created test results file.
       - name: Get the new Word Error Rate (WER)
         if: ${{ env.BENCHMARK_BLOB_EXISTS == 'true' }}
-        run: jq '.properties.wordErrorRate1' ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} | xargs -I {} echo "NEW_WER={}" >> $GITHUB_ENV
+        run: jq '.properties.wordErrorRate1' ${{ env.TEST_BUILD_FOLDER_PATH }}/${{ env.TEST_SUMMARY_FILE }} | xargs -I {} echo "NEW_WER={}" >> $GITHUB_ENV
 
       - name: CONTINUING WORKFLOW - WER improved
         if: ${{ env.BENCHMARK_BLOB_EXISTS == 'false' || env.BENCHMARK_WER > env.NEW_WER }}
