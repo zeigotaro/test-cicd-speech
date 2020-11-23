@@ -180,7 +180,7 @@ jobs:
           spx csr model list --base --models --output json baseline_models.json
           jf1='.values[]|select(.locale=="'
           jf2='").self'
-          echo ${{ jf1 }}${{ SPEECH_LOCALE }}${{ jf2 }}    
+          echo ${jf1}${{ env.SPEECH_LOCALE }}${jf2}    
           echo other     
           echo ${jf1}${SPEECH_LOCALE}${jf2}
           jq ${jf1}${SPEECH_LOCALE}${jf2} baseline_models.json | tr -d \" > baseline_models.txt
