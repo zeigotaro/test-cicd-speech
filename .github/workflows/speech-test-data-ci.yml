@@ -158,7 +158,7 @@ jobs:
       - name: Get the benchmark model
         run: |
           spx csr model list --models --output url @my.test.model.url
-          custom_speech_model_id=$(tail -1 my.test.model.url tail -c 36)
+          custom_speech_model_id=$(tail -1 my.test.model.url | tail -c 36)
           if [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
             echo IF THIS IS NOT A BASELINE TEST, TEST THE BENCHMARK CUSTOM SPEECH MODEL WITH GUID: $custom_speech_model_id
