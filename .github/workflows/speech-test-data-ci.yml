@@ -196,7 +196,7 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Test the benchmark or baseline model
         run: |
-          spx csr evaluation create --name test_from_${{ UNDERSCORE_EVENT_NAME }}_${{ EVENT_ID }} --model1 @my.test.model.url --model2 @my.test.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
+          spx csr evaluation create --name test_from_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} --model1 @my.test.model.url --model2 @my.test.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
           test_id=$(tail -1 my.test.result | tail -c 36)
           if ! [[ ${test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
