@@ -29,7 +29,7 @@ env:
   IS_PRIVATE_REPOSITORY: false
   # See Language Support for available locales:
   # https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support
-  SPEECH_LOCALE: "en-us"
+  SPEECH_LOCALE: "en-US"
   #############################################################################
   # Testing Data
   #############################################################################
@@ -129,22 +129,22 @@ jobs:
       # will be trained.
       - name: Prepare for an Acoustic or Language model
         run: |
-          if [[ "${{ PRONUNCIATION_FILE_PATH }}" == "" ]] && [[ "${{ RELATED_TEXT_FILE_PATH }}" == "" ]]
+          if [[ "${{ env.PRONUNCIATION_FILE_PATH }}" == "" ]] && [[ "${{ env.RELATED_TEXT_FILE_PATH }}" == "" ]]
           then
-            if [[ "${{ TRAIN_ZIP_SOURCE_PATH }}" == "" ]]
+            if [[ "${{ env.TRAIN_ZIP_SOURCE_PATH }}" == "" ]]
             then
               echo "::error ::Define both PRONUNCIATION_FILE_PATH and RELATED_TEXT_FILE_PATH to train language models. Or define TRAIN_ZIP_SOURCE_PATH to train acoustic models."
               exit 1
             fi
             echo CONFIGURED REPOSITORY FOR ACOUSTIC MODELS.
-          elif [[ "${{ TRAIN_ZIP_SOURCE_PATH }}" == "" ]]
+          elif [[ "${{ env.TRAIN_ZIP_SOURCE_PATH }}" == "" ]]
           then
-            if [[ "${{ PRONUNCIATION_FILE_PATH }}" == "" ]] || [[ "${{ RELATED_TEXT_FILE_PATH }}" == "" ]]
+            if [[ "${{ env.PRONUNCIATION_FILE_PATH }}" == "" ]] || [[ "${{ env.RELATED_TEXT_FILE_PATH }}" == "" ]]
             then
               echo "::error ::If TRAIN_ZIP_SOURCE_PATH is not defined, then PRONUNCIATION_FILE_PATH and RELATED_TEXT_FILE_PATH must both be defined to train language models."
               exit 1
             fi
-            mkdir "${{ TRAIN_BUILD_FOLDER_PATH }}"
+            mkdir "${{ env.TRAIN_BUILD_FOLDER_PATH }}"
             echo CONFIGURED REPOSITORY FOR LANGUAGE MODELS.
           else
             echo "::error ::Define both PRONUNCIATION_FILE_PATH and RELATED_TEXT_FILE_PATH to train language models. Or define TRAIN_ZIP_SOURCE_PATH to train acoustic models."
@@ -168,9 +168,9 @@ jobs:
       # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Upload audio and human transcript training data
-        if: TRAIN_ZIP_SOURCE_PATH && TRAIN_ZIP_SOURCE_PATH != ''
+        if: ${{ env.TRAIN_ZIP_SOURCE_PATH && env.TRAIN_ZIP_SOURCE_PATH != '' }}
         run: |
-          spx csr dataset upload --data ${{ TRAIN_ZIP_SOURCE_PATH }} --kind Acoustic --name "AM" --output add url @my.training.datasets --wait
+          spx csr dataset upload --data $TRAIN_ZIP_SOURCE_PATH --kind Acoustic --name "AM" --output add url @my.training.datasets --wait
           audio_trans_train_id=$(cat my.training.datasets | tail -c 36)
           if ! [[ ${audio_trans_train_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -184,9 +184,9 @@ jobs:
       # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Upload pronunciation data
-        if: PRONUNCIATION_FILE_PATH && PRONUNCIATION_FILE_PATH != ''
+        if: ${{ env.PRONUNCIATION_FILE_PATH && env.PRONUNCIATION_FILE_PATH != '' }}
         run: |
-          spx csr dataset upload --data ${{ PRONUNCIATION_FILE_PATH }} --kind Pronunciation --name pronunciation_${{ CURRENT_COMMIT_HASH }} --output add url @my.training.datasets --wait
+          spx csr dataset upload --data $PRONUNCIATION_FILE_PATH --kind Pronunciation --name pronunciation_${CURRENT_COMMIT_HASH} --output add url @my.training.datasets --wait
           pronunciation_id=$(tail -1 my.training.datasets | tail -c 36)
           if ! [[ ${pronunciation_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -200,9 +200,9 @@ jobs:
       # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Upload language data
-        if: RELATED_TEXT_FILE_PATH && RELATED_TEXT_FILE_PATH != ''
+        if: ${{ env.RELATED_TEXT_FILE_PATH && env.RELATED_TEXT_FILE_PATH != '' }}
         run: |
-          spx csr dataset upload --data ${{ RELATED_TEXT_FILE_PATH }} --kind Language --name language_${{ CURRENT_COMMIT_HASH }} --output add url @my.training.datasets --wait
+          spx csr dataset upload --data $RELATED_TEXT_FILE_PATH --kind Language --name language_${CURRENT_COMMIT_HASH} --output add url @my.training.datasets --wait
           language_id=$(tail -1 my.training.datasets | tail -c 36)
           if ! [[ ${language_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -219,7 +219,7 @@ jobs:
       - name: Get latest baseline model
         run: |
           spx csr model list --base --models --output json base_models.json
-          jq --arg SPEECH_LOCALE "$SPEECH_LOCALE" '.values[] | select(.locale==$SPEECH_LOCALE).self' base_models.json | tr -d \" > base_models.txt
+          jq --arg LOC "$SPEECH_LOCALE" '.values[] | select(.locale==$LOC).self' base_models.json | tr -d \" > base_models.txt
           rm base_models.json
           base_model_id=$(tail -1 base_models.txt | tr -d '[:space:]' | tail -c 36)
           if ! [[ ${base_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
@@ -235,7 +235,7 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Create Custom Speech model with training data
         run: |
-          spx csr model create --name custom_speech_model_${{ CURRENT_COMMIT_HASH }} --datasets @my.training.datasets --output url @my.model.url --wait
+          spx csr model create --name custom_speech_model_${CURRENT_COMMIT_HASH} --datasets @my.training.datasets --output url @my.model.url --wait
           custom_speech_model_id=$(cat my.model.url | tail -c 36)
           if ! [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -270,7 +270,7 @@ jobs:
           then
             spx csr dataset list --output url @my.testing.datasets
           else
-            spx csr dataset upload --name audio_trans_test_${{ CURRENT_COMMIT_HASH }} --kind Acoustic --data ${{ TEST_ZIP_SOURCE_PATH }} --output url @my.testing.datasets --wait 
+            spx csr dataset upload --name audio_trans_test_${CURRENT_COMMIT_HASH} --kind Acoustic --data $TEST_ZIP_SOURCE_PATH --output url @my.testing.datasets --wait 
           fi
           audio_trans_test_id=$(tail -1 my.testing.datasets | tail -c 36)
           if ! [[ ${audio_trans_test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
@@ -286,8 +286,7 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Test the new Speech model
         run: |
-          spx csr evaluation create --name test_from_train_data_update_${{ CURRENT_COMMIT_HASH }} --model1 @my.model.url --model2 @my.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
-          #speech test create -n test_from_train_data_update_${{ CURRENT_COMMIT_HASH }} -a ${{ AUDIO_TRANS_TEST_ID }} -m ${{ CUSTOM_SPEECH_MODEL_ID }} -lm ${{ CUSTOM_SPEECH_MODEL_ID }} --wait > ${{ TEST_BUILD_FOLDER_PATH }}/test-output.txt
+          spx csr evaluation create --name test_from_train_data_update_${CURRENT_COMMIT_HASH} --model1 @my.model.url --model2 @my.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
           test_id=$(tail -1 my.test.result | tail -c 36)
           if ! [[ ${test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -302,9 +301,9 @@ jobs:
       # Get the content from the test as a JSON file.
       - name: Store JSON test output
         run: |
-          test_summary_file_name="test-summary-from-train-data-update-${{ CURRENT_COMMIT_HASH }}.json"
+          test_summary_file_name="test-summary-from-train-data-update-${CURRENT_COMMIT_HASH}.json"
           echo "TEST_SUMMARY_FILE=$(echo $test_summary_file_name)" >> $GITHUB_ENV
-          spx csr evaluation status --evaluation @my.test.result --output json ${{ TEST_BUILD_FOLDER_PATH }}/$test_summary_file_name
+          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/$test_summary_file_name
       ###########################################################################
       # Archiving test results in blob
       ###########################################################################
@@ -318,12 +317,12 @@ jobs:
       - name: Save test summary in Azure Blob
         uses: azure/CLI@v1
         with:
-          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name ${{ TEST_SUMMARY_FILE }} --file ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} --auth-mode login
+          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name $TEST_SUMMARY_FILE --file ${{ env.TEST_BUILD_FOLDER_PATH }}/${{ env.TEST_SUMMARY_FILE }} --auth-mode login
 
       - name: Save test results in Azure Blob
         run: |
-          cat ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} > test-results.txt
-          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-train-data-update-${{ CURRENT_COMMIT_HASH }}.txt --file test-results.txt --auth-mode login
+          cat ${{ env.TEST_BUILD_FOLDER_PATH }}/${{ env.TEST_SUMMARY_FILE }} > test-results.txt
+          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-train-data-update-${CURRENT_COMMIT_HASH}.txt --file test-results.txt --auth-mode login
       # Delete the test. This must be done after the test results file is
       # generated, as the resultsUrl will only be available while the test
       # exists.
@@ -339,7 +338,7 @@ jobs:
         run: az storage blob exists --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --auth-mode login | jq '.exists' | xargs -I {} echo "BENCHMARK_BLOB_EXISTS={}" >> $GITHUB_ENV
 
       - name: Get the benchmark Word Error Rate (WER)
-        if: BENCHMARK_BLOB_EXISTS == 'true'
+        if: ${{ env.BENCHMARK_BLOB_EXISTS == 'true' }}
         run: |
           az storage blob download --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file previous-benchmark-test.txt --auth-mode login
           benchmark_test_results_name=$(cat previous-benchmark-test.txt)
@@ -347,16 +346,16 @@ jobs:
           jq '.properties.wordErrorRate1' benchmark-test-results.json | xargs -I {} echo "BENCHMARK_WER={}" >> $GITHUB_ENV
       # Get NEW_WER from the newly-created test results file.
       - name: Get the new Word Error Rate (WER)
-        if: BENCHMARK_BLOB_EXISTS == 'true'
+        if: ${{ env.BENCHMARK_BLOB_EXISTS == 'true' }}
         run: jq '.properties.wordErrorRate1' ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} | xargs -I {} echo "NEW_WER={}" >> $GITHUB_ENV
 
       - name: CONTINUING WORKFLOW - WER improved
-        if: BENCHMARK_BLOB_EXISTS == 'false' || BENCHMARK_WER > NEW_WER
+        if: ${{ env.BENCHMARK_BLOB_EXISTS == 'false' || env.BENCHMARK_WER > env.NEW_WER }}
         run: |
-          echo ${{ TEST_SUMMARY_FILE }} > ${{ TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt
-          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${{ TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt --auth-mode login
+          echo ${{ env.TEST_SUMMARY_FILE }} > ${{ env.TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt
+          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${{ env.TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt --auth-mode login
       - name: STOPPING WORKFLOW - WER not improved
-        if: BENCHMARK_WER <= NEW_WER
+        if: ${{ env.BENCHMARK_WER <= env.NEW_WER }}
         run: |
           spx csr model delete --model @my.model.url
           echo DELETED CUSTOM SPEECH MODEL.
@@ -385,11 +384,11 @@ jobs:
       #   run: git lfs checkout
 
       - name: Fetch all history for all tags and branches - for GitVersion
-        if: IS_PRIVATE_REPOSITORY == 'false'
+        if: ${{ env.IS_PRIVATE_REPOSITORY == 'false' }}
         run: git fetch --prune --unshallow
 
       - name: Fetch all history for all tags and branches (private repo) - for GitVersion
-        if: IS_PRIVATE_REPOSITORY == 'true'
+        if: ${{ env.IS_PRIVATE_REPOSITORY == 'true' }}
         run: |
           git config remote.origin.url https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch --prune --unshallow
@@ -422,11 +421,11 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Get the benchmark Speech model
         run: |
-          mkdir ${{ TRAIN_BUILD_FOLDER_PATH }}
-          spx csr model list --models --output json ${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json
-          jq '.values[].self' ${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json | tr -d \" > ${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt
-          rm ${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json
-          custom_speech_model_id=$(tail -1 ${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt | tr -d '[:space:]' | tail -c 36)
+          mkdir ${{ env.TRAIN_BUILD_FOLDER_PATH }}
+          spx csr model list --models --output json ${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json
+          jq '.values[].self' ${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json | tr -d \" > ${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt
+          rm ${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.json
+          custom_speech_model_id=$(tail -1 ${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt | tr -d '[:space:]' | tail -c 36)
           if ! [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
             echo "::error ::Failed to get the benchmark Custom Speech model. Possibly re-run all jobs."
@@ -435,7 +434,7 @@ jobs:
           echo "CUSTOM_SPEECH_MODEL_ID=$(echo $custom_speech_model_id)" >> $GITUB_ENV
       - name: Delete all but the 5 latest models
         run: |
-          speech_model_list_file=${{ TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt
+          speech_model_list_file=${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt
           number_of_models_to_delete=$(($( wc -l < "$speech_model_list_file") - 5))
           if [[ $number_of_models_to_delete -gt 0 ]]
           then
@@ -464,15 +463,15 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Create Release Asset
         run: |
-          spx csr endpoint create --name endpoint_${{ CURRENT_COMMIT_HASH }} --language ${{ SPEECH_LOCALE }} --model @my.model.url --output url @my.endpoint.url --wait
-          #speech endpoint create -n endpoint_${{ CURRENT_COMMIT_HASH }} -l ${{ SPEECH_LOCALE }} -m ${{ CUSTOM_SPEECH_MODEL_ID }} -lm ${{ CUSTOM_SPEECH_MODEL_ID }} --wait > ${{ TRAIN_BUILD_FOLDER_PATH }}/endpoint-output.txt
+          spx csr endpoint create --name endpoint_${CURRENT_COMMIT_HASH} --language ${{ env.SPEECH_LOCALE }} --model @my.model.url --output url @my.endpoint.url --wait
+          #speech endpoint create -n endpoint_${CURRENT_COMMIT_HASH} -l ${{ env.SPEECH_LOCALE }} -m ${{ env.CUSTOM_SPEECH_MODEL_ID }} -lm ${{ env.CUSTOM_SPEECH_MODEL_ID }} --wait > ${{ env.TRAIN_BUILD_FOLDER_PATH }}/endpoint-output.txt
           endpoint_id=$(cat my.endpoint.url | tail -c 36)
           if ! [[ ${endpoint_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
             echo "::error ::Failed to create an endpoint. Possibly re-run all jobs."
             exit 1
           fi
-          echo '{"ENDPOINT_ID":"'$endpoint_id'"}' > ${{ TRAIN_BUILD_FOLDER_PATH }}/${{ RELEASE_FILE }}
+          echo '{"ENDPOINT_ID":"'$endpoint_id'"}' > ${{ env.TRAIN_BUILD_FOLDER_PATH }}/${{ env.RELEASE_FILE }}
       # Create a GitHub release named with the repository's current semantic
       # version.
       - name: Create Release
@@ -481,8 +480,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ SEMANTIC_VERSION }}
-          release_name: Release ${{ SEMANTIC_VERSION }}
+          tag_name: ${{ env.SEMANTIC_VERSION }}
+          release_name: Release ${{ env.SEMANTIC_VERSION }}
           body: |
             Releasing new Release Asset
             draft: false
@@ -497,6 +496,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ TRAIN_BUILD_FOLDER_PATH }}/${{ RELEASE_FILE }}
-          asset_name: ${{ RELEASE_FILE }}
+          asset_path: ${{ env.TRAIN_BUILD_FOLDER_PATH }}/${{ env.RELEASE_FILE }}
+          asset_name: ${{ env.RELEASE_FILE }}
           asset_content_type: application/json
