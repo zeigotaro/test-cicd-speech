@@ -108,7 +108,6 @@ jobs:
         run: |
           echo "TEST_AUDIO_ZIP_FILE=test-audio.zip" >> $GITHUB_ENV
           echo "TEST_BUILD_FOLDER_PATH=build-speech-test" >> $GITHUB_ENV
-          echo "TEST_SUMMARY_FILE=" >> $GITHUB_ENV
           if [[ ${GITHUB_REF/refs\/tags\//} == BASELINE* ]]
           then
             echo WORKFLOW TRIGGERED BY A BASELINE TAG.
@@ -213,9 +212,7 @@ jobs:
       # logging, so the result is a JSON file.
       - name: Store JSON test output
         run: |
-          test_summary_file_name="test-summary-from-${HYPHEN_EVENT_NAME}-${EVENT_ID}.json"
-          echo "TEST_SUMMARY_FILE=$(echo $test_summary_file_name)" >> $GITHUB_ENV
-          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/$test_summary_file_name
+          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID}
       #########################################################################
       # Archive test summary and test results in Blob
       #########################################################################
@@ -229,12 +226,12 @@ jobs:
       - name: Save test summary in Azure Blob
         uses: azure/CLI@v1
         with:
-          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name ${{ TEST_SUMMARY_FILE }} --file ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} --auth-mode login
+          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} --file ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} --auth-mode login
 
       - name: Save test results in Azure Blob
         run: |
-          cat ${TEST_BUILD_FOLDER_PATH}/${TEST_SUMMARY_FILE} > test-results.txt
-          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-${{ HYPHEN_EVENT_NAME }}-${{ EVENT_ID }}.txt --file test-results.txt --auth-mode login
+          cat ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} > test-results.txt
+          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-${HYPHEN_EVENT_NAME}-${EVENT_ID}.txt --file test-results.txt --auth-mode login
       # Delete the test. This must be done after the test results file is
       # generated, as the resultsUrl will only be available while the test
       # exists.
@@ -255,5 +252,5 @@ jobs:
       - name: Update benchmark in configuration file
         if: IS_BASELINE_TEST != 'true' || BENCHMARK_BLOB_EXISTS == 'false' || INITIAL_MODEL_EXISTS == 'false'
         run: |
-          echo ${{ TEST_SUMMARY_FILE }} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
+          echo test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
           az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt --auth-mode login
