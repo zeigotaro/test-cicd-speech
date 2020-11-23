@@ -214,7 +214,7 @@ jobs:
         run: |
           test_summary_file_name="test-summary-from-${HYPHEN_EVENT_NAME}-${EVENT_ID}.json"
           echo "TEST_SUMMARY_FILE=$(echo $test_summary_file_name)" >> $GITHUB_ENV
-          spx csr evaluation status --evaluation @my.test.result --output json ${{ TEST_BUILD_FOLDER_PATH }}/$test_summary_file_name
+          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/$test_summary_file_name
       #########################################################################
       # Archive test summary and test results in Blob
       #########################################################################
