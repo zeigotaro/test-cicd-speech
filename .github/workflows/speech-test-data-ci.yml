@@ -140,7 +140,7 @@ jobs:
       # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Upload audio and human transcript testing data
-        if: $TEST_ZIP_SOURCE_PATH && $TEST_ZIP_SOURCE_PATH != ''
+        if: TEST_ZIP_SOURCE_PATH && TEST_ZIP_SOURCE_PATH != ''
         run: |
           spx csr dataset upload --data $TEST_ZIP_SOURCE_PATH --kind Acoustic --name "AM" --output url @my.testing.datasets --wait
           audio_trans_test_id=$(cat my.testing.datasets | tail -c 36)
