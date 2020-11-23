@@ -232,7 +232,7 @@ jobs:
 
       - name: Save test results in Azure Blob
         run: |
-          cat ${{ TEST_BUILD_FOLDER_PATH }}/${{ TEST_SUMMARY_FILE }} > test-results.txt
+          cat ${TEST_BUILD_FOLDER_PATH}/${TEST_SUMMARY_FILE} > test-results.txt
           az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-${{ HYPHEN_EVENT_NAME }}-${{ EVENT_ID }}.txt --file test-results.txt --auth-mode login
       # Delete the test. This must be done after the test results file is
       # generated, as the resultsUrl will only be available while the test
@@ -254,5 +254,5 @@ jobs:
       - name: Update benchmark in configuration file
         if: IS_BASELINE_TEST != 'true' || BENCHMARK_BLOB_EXISTS == 'false' || INITIAL_MODEL_EXISTS == 'false'
         run: |
-          echo ${{ TEST_SUMMARY_FILE }} > ${{ TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt
-          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${{ TEST_BUILD_FOLDER_PATH }}/benchmark-test.txt --auth-mode login
+          echo ${{ TEST_SUMMARY_FILE }} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
+          az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt --auth-mode login
