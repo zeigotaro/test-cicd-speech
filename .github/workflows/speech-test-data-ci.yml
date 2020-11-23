@@ -142,7 +142,7 @@ jobs:
       - name: Upload audio and human transcript testing data
         if: $TEST_ZIP_SOURCE_PATH && $TEST_ZIP_SOURCE_PATH != ''
         run: |
-          spx csr dataset upload --data ${{ TEST_ZIP_SOURCE_PATH }} --kind Acoustic --name "AM" --output url @my.testing.datasets --wait
+          spx csr dataset upload --data $TEST_ZIP_SOURCE_PATH --kind Acoustic --name "AM" --output url @my.testing.datasets --wait
           audio_trans_test_id=$(cat my.testing.datasets | tail -c 36)
           if ! [[ ${audio_trans_test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
