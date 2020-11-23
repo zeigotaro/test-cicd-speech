@@ -108,6 +108,7 @@ jobs:
         run: |
           echo "TEST_AUDIO_ZIP_FILE=test-audio.zip" >> $GITHUB_ENV
           echo "TEST_BUILD_FOLDER_PATH=build-speech-test" >> $GITHUB_ENV
+          echo "TEST_SUMMARY_FILE=" >> $GITHUB_ENV
           if [[ ${GITHUB_REF/refs\/tags\//} == BASELINE* ]]
           then
             echo WORKFLOW TRIGGERED BY A BASELINE TAG.
