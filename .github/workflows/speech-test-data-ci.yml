@@ -178,8 +178,9 @@ jobs:
         if: ${{ env.IS_BASELINE_TEST == 'true' }}
         run: |
           spx csr model list --base --models --output json baseline_models.json
-          jq '.values[] | select(.locale==env.SPEECH_LOCALE).self' baseline_models.json | tr -d \" > baseline_models.txt
+          jq --arg LOC "$SPEECH_LOCALE" '.values[] | select(.locale==$LOC).self' baseline_models.json | tr -d \" > baseline_models.txt
           rm baseline_models.json
+          cat baseline_models.txt
           tail -1 baseline_models.txt | tr -d '[:space:]' > my.test.model.url
           baseline_model_id=$(cat my.test.model.url | tail -c 36)
           if ! [[ ${baseline_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
