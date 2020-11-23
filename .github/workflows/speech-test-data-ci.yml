@@ -212,7 +212,7 @@ jobs:
       # logging, so the result is a JSON file.
       - name: Store JSON test output
         run: |
-          test_summary_file_name="test-summary-from-${{ HYPHEN_EVENT_NAME }}-${{ EVENT_ID }}.json"
+          test_summary_file_name="test-summary-from-${HYPHEN_EVENT_NAME}-${EVENT_ID}.json"
           echo "TEST_SUMMARY_FILE=$(echo $test_summary_file_name)" >> $GITHUB_ENV
           spx csr evaluation status --evaluation @my.test.result --output json ${{ TEST_BUILD_FOLDER_PATH }}/$test_summary_file_name
       #########################################################################
