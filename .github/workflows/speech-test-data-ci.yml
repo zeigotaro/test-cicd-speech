@@ -178,7 +178,7 @@ jobs:
         if: ${{ env.IS_BASELINE_TEST == 'true' }}
         run: |
           spx csr model list --base --models --output json baseline_models.json
-          cat $SPEECH_LOCALE
+          echo $SPEECH_LOCALE
           #jq --arg LOC "$SPEECH_LOCALE" '.values[] | select(.locale==$LOC).self' baseline_models.json | tr -d \" > baseline_models.txt
           jq --arg '.values[] | select(.locale=="en-US").self' baseline_models.json | tr -d \" > baseline_models.txt
           rm baseline_models.json
