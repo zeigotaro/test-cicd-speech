@@ -412,13 +412,13 @@ jobs:
           git fetch --prune --unshallow
       # https://github.com/GitTools/GitVersion
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@6dfe406
+        uses: gittools/actions/gitversion/setup@26def75
         with:
           versionSpec: "5.5.x"
 
       - name: Use GitVersion
         id: gitversion
-        uses: gittools/actions/gitversion/execute@6dfe406
+        uses: gittools/actions/gitversion/execute@26def75
 
       - name: Set environment variables
         run: |
