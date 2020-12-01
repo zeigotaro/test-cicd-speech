@@ -449,7 +449,7 @@ jobs:
             echo "::error ::Failed to get the benchmark Custom Speech model. Possibly re-run all jobs."
             exit 1
           fi
-          echo "CUSTOM_SPEECH_MODEL_ID=$(echo $custom_speech_model_id)" >> $GITUB_ENV
+          echo "CUSTOM_SPEECH_MODEL_ID=$(echo $custom_speech_model_id)" >> $GITHUB_ENV
       - name: Delete all but the 5 latest models
         run: |
           speech_model_list_file=${{ env.TRAIN_BUILD_FOLDER_PATH }}/speech-model-list.txt
