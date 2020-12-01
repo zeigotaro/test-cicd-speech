@@ -414,7 +414,7 @@ jobs:
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@6dfe406
         with:
-          versionSpec: "5.2.x"
+          versionSpec: "5.5.x"
 
       - name: Use GitVersion
         id: gitversion
