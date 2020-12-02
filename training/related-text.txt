@@ -7,7 +7,7 @@ WER formula
 Incorrectly identified words fall into three categories:
 Insertion (I): Words that are incorrectly added in the hypothesis transcript
 Deletion (D): Words that are undetected in the hypothesis transcript
-Substitution (S): Words that were substituted between reference and hypothesis
+Substitution (S): Words that were substituted between reference  and hypothesis
 Here's an example:
 Example of incorrectly identified words
 Resolve errors and improve WER
