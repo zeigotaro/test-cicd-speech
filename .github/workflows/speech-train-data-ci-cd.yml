@@ -332,7 +332,26 @@ jobs:
 
       - name: Delete testing datasets
         run: |
-          spx csr dataset delete --foreach ds in @my.testing.datasets
+          datasets_file=my.testing.datasets
+          number_of_datasets_to_delete=$( wc -l < "$datasets_file" )
+          if [[ $number_of_datasets_to_delete -gt 0 ]]
+          then
+            while read -a line
+            do
+              line_url=$(cat line | tr -d '[:space:]')
+              line_id=$(cat line_url | tail -c 36)
+              if [[ ${line_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
+              then
+                spx csr dataset delete --dataset $line_url
+                if [[ ${?} -gt 0 ]]
+                then
+                  echo "::warning::Bad deletion request detected"
+                else
+                  echo DELETED DATASET WITH GUID: "$line"
+                fi
+              fi
+            done < "$datasets_file" | head -$number_of_datasets_to_delete
+          fi
           echo DELETED AUDIO+HUMAN-LABELED TRANSCRIPT TESTING DATA.
 
       # Get the content from the test as a JSON file.
