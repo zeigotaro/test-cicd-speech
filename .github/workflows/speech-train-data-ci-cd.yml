@@ -249,7 +249,7 @@ jobs:
           spx csr model list --models --output json models.json
           jq --arg MODEL_NAME "$CUSTOM_SPEECH_MODEL_NAME" '.values[] | select(.displayName==$MODEL_NAME).baseModel.self' models.json | tr -d \" > models.txt
           rm models.json
-          $(tail -1 models.txt | tr -d '[:space:]') > my.base.model
+          tail -1 models.txt | tr -d '[:space:]' > my.base.model
           base_model_id=$(cat my.base.model | tail -c 36)
           if ! [[ ${base_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
