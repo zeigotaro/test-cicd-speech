@@ -419,7 +419,7 @@ jobs:
         if: ${{ env.BENCHMARK_WER <= env.NEW_WER }}
         run: |
           spx csr model delete --model @my.model.url
-          spx config --clear
+          spx config @spx.defaults --set @@none
           echo DELETED CUSTOM SPEECH MODEL AND CONFIGURATION.
           echo "::error ::Failed to improve upon the benchmark Custom Speech model. Submit a pull request with updates to training data to try again."
           exit 1
@@ -427,7 +427,7 @@ jobs:
       # Delete all potentially sensitive config variables from build machine
       - name: Delete Model configuration 
         run: |
-          spx config --clear
+          spx config @spx.defaults --set @@none
           echo MODEL CONFIGURATION DELETED
   
 
@@ -580,6 +580,6 @@ jobs:
       # Delete all potentially sensitive config variables from build machine
       - name: Delete Endpoint configuration 
         run: |
-          spx config --clear
+          spx config @spx.defaults --set @@none
           echo ENDPOINT CONFIGURATION DELETED
   
