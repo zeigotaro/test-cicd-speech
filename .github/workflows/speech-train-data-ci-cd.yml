@@ -228,7 +228,7 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Get latest baseline model
         run: |
-          spx csr model list --base --models --output json base_models.json
+          spx csr model list --base models --output json base_models.json
           jq --arg LOC "$SPEECH_LOCALE" '.values[] | select(.locale==$LOC).self' base_models.json | tr -d \" > base_models.txt
           rm base_models.json
           $(tail -1 base_models.txt | tr -d '[:space:]') > my.base.model
