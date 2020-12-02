@@ -220,6 +220,24 @@ jobs:
           fi
           echo "LANGUAGE_ID=$(echo $language_id)" >> $GITHUB_ENV
 
+      # Train the Custom Speech Model.
+      #
+      # Check that the Custom Speech model has been successfully trained with
+      # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
+      # the variable is a valid GUID with 32 hexadecimal characters.
+      - name: Create Custom Speech model with training data
+        run: |
+          custom_speech_model_name=custom_speech_model_${CURRENT_COMMIT_HASH}
+          spx csr model create --name $custom_speech_model_name --datasets @my.training.datasets --output url @my.model.url --wait
+          custom_speech_model_id=$(cat my.model.url | tail -c 36)
+          if ! [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
+          then
+            echo "::error ::Failed to create a Custom Speech model. Possibly re-run all jobs."
+            exit 1
+          fi
+          echo "CUSTOM_SPEECH_MODEL_ID=$(echo $custom_speech_model_id)" >> $GITHUB_ENV
+          echo "CUSTOM_SPEECH_MODEL_NAME=$(echo $custom_speech_model_name)" >> $GITHUB_ENV
+
       # Get the latest baseline model, which is the underlying, non-customized
       # portion of Custom Speech models.
       #
@@ -228,10 +246,10 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Get latest baseline model
         run: |
-          spx csr model list --base models --output json base_models.json
-          jq --arg LOC "$SPEECH_LOCALE" '.values[] | select(.locale==$LOC).self' base_models.json | tr -d \" > base_models.txt
-          rm base_models.json
-          $(tail -1 base_models.txt | tr -d '[:space:]') > my.base.model
+          spx csr model list --models --output json models.json
+          jq --arg MODEL_NAME "$CUSTOM_SPEECH_MODEL_NAME" '.values[] | select(.displayName==$MODEL_NAME).baseModel.self' models.json | tr -d \" > models.txt
+          rm models.json
+          $(tail -1 models.txt | tr -d '[:space:]') > my.base.model
           base_model_id=$(cat my.base.model | tail -c 36)
           if ! [[ ${base_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -239,22 +257,6 @@ jobs:
             exit 1
           fi
           echo "BASE_MODEL_ID=$(echo $base_model_id)" >> $GITHUB_ENV
-
-      # Train the Custom Speech Model.
-      #
-      # Check that the Custom Speech model has been successfully trained with
-      # [[${my_variable//-/} =~ ^[[:xdigit:]]{32}$]] which will return true if
-      # the variable is a valid GUID with 32 hexadecimal characters.
-      - name: Create Custom Speech model with training data
-        run: |
-          spx csr model create --name custom_speech_model_${CURRENT_COMMIT_HASH} --datasets @my.training.datasets --output url @my.model.url --wait
-          custom_speech_model_id=$(cat my.model.url | tail -c 36)
-          if ! [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
-          then
-            echo "::error ::Failed to create a Custom Speech model. Possibly re-run all jobs."
-            exit 1
-          fi
-          echo "CUSTOM_SPEECH_MODEL_ID=$(echo $custom_speech_model_id)" >> $GITHUB_ENV
 
       # Set environment variables to be bash variables to avoid substitution
       # errors. Not all training data will be used, so check that it was with
@@ -562,4 +564,3 @@ jobs:
           spx config --clear
           echo ENDPOINT CONFIGURATION DELETED
   
-
