@@ -43,6 +43,8 @@ env:
   # The path from the root of the repository to a .zip with .wav files and a
   # .txt transcript used for testing.
   TEST_ZIP_SOURCE_PATH: "testing/audio-and-trans.zip"
+  # version of Speech CLI tool to install and use
+  SPX_VERSION: "1.0.0"
 
 jobs:
   #############################################################################
@@ -123,9 +125,9 @@ jobs:
             echo "UNDERSCORE_EVENT_NAME=test_data_update" >> $GITHUB_ENV
           fi
       # https://github.com/Azure-Samples/cognitive-services-speech-tools
-      - name: Install and configure SPX
+      - name: Install and configure Speech CLI
         run: |
-          dotnet tool install -g spx
+          dotnet tool install -g Microsoft.CognitiveServices.Speech.CLI --version ${{ env.SPX_VERSION }}
           spx config @name --set ${{ secrets.SPEECH_PROJECT_NAME }} 
           spx config @key --set ${{ secrets.SPEECH_SUBSCRIPTION_KEY }} 
           spx config @region --set ${{ secrets.SPEECH_RESOURCE_REGION }}
@@ -142,7 +144,7 @@ jobs:
       - name: Upload audio and human transcript testing data
         if: ${{ env.TEST_ZIP_SOURCE_PATH && env.TEST_ZIP_SOURCE_PATH != '' }}
         run: |
-          spx csr dataset upload --data $TEST_ZIP_SOURCE_PATH --kind Acoustic --name "AM" --output url @my.testing.datasets --wait
+          spx csr dataset upload --data $TEST_ZIP_SOURCE_PATH --kind Acoustic --name audio_trans_test_${EVENT_ID} --output url @my.testing.datasets --wait
           audio_trans_test_id=$(cat my.testing.datasets | tail -c 36)
           if ! [[ ${audio_trans_test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -157,8 +159,8 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Get the benchmark model
         run: |
-          spx csr model list --models --output url @my.test.model.url
-          custom_speech_model_id=$(tail -1 my.test.model.url | tail -c 36)
+          spx csr model list --models --output url @my.benchmark.model.url
+          custom_speech_model_id=$(tail -1 my.benchmark.model.url | tail -c 36)
           if [[ ${custom_speech_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
             echo IF THIS IS NOT A BASELINE TEST, TEST THE BENCHMARK CUSTOM SPEECH MODEL WITH GUID: $custom_speech_model_id
@@ -177,11 +179,11 @@ jobs:
       - name: Get the baseline model
         if: ${{ env.IS_BASELINE_TEST == 'true' }}
         run: |
-          spx csr model list --base --models --output json baseline_models.json
-          jq --arg LOC "$SPEECH_LOCALE" '.values[]|select(.locale==$LOC).self' baseline_models.json | tr -d \" > baseline_models.txt
-          rm baseline_models.json
-          tail -1 baseline_models.txt | tr -d '[:space:]' > my.test.model.url
-          baseline_model_id=$(cat my.test.model.url | tail -c 36)
+          spx csr model list --models --output json models.json
+          jq --arg LOC "$SPEECH_LOCALE" '.values[]|select(.locale==$LOC).baseModel.self' models.json | tr -d \" > models.txt
+          rm models.json
+          tail -1 models.txt | tr -d '[:space:]' > my.base.model.url
+          baseline_model_id=$(cat my.base.model.url | tail -c 36)
           if ! [[ ${baseline_model_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
             echo "::error ::Failed to get the latest baseline model. Possibly re-run all jobs."
@@ -196,7 +198,7 @@ jobs:
       # the variable is a valid GUID with 32 hexadecimal characters.
       - name: Test the benchmark or baseline model
         run: |
-          spx csr evaluation create --name test_from_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} --model1 @my.test.model.url --model2 @my.test.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
+          spx csr evaluation create --name test_from_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} --model1 @my.base.model.url --model2 @my.benchmark.model.url --dataset @my.testing.datasets --output url @my.test.result --wait 
           test_id=$(tail -1 my.test.result | tail -c 36)
           if ! [[ ${test_id//-/} =~ ^[[:xdigit:]]{32}$ ]]
           then
@@ -212,7 +214,7 @@ jobs:
       # logging, so the result is a JSON file.
       - name: Store JSON test output
         run: |
-          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID}
+          spx csr evaluation status --evaluation @my.test.result --output json ${TEST_BUILD_FOLDER_PATH}/test_json_${UNDERSCORE_EVENT_NAME}_${EVENT_ID}
       #########################################################################
       # Archive test summary and test results in Blob
       #########################################################################
@@ -226,11 +228,11 @@ jobs:
       - name: Save test summary in Azure Blob
         uses: azure/CLI@v1
         with:
-          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} --file ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} --auth-mode login
+          inlineScript: az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test_json_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} --file ${TEST_BUILD_FOLDER_PATH}/test_json_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} --auth-mode login
 
       - name: Save test results in Azure Blob
         run: |
-          cat ${TEST_BUILD_FOLDER_PATH}/test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} > test-results.txt
+          cat ${TEST_BUILD_FOLDER_PATH}/test_json_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} > test-results.txt
           az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name test-results --name test-results-from-${HYPHEN_EVENT_NAME}-${EVENT_ID}.txt --file test-results.txt --auth-mode login
       # Delete the test. This must be done after the test results file is
       # generated, as the resultsUrl will only be available while the test
@@ -239,6 +241,13 @@ jobs:
         run: |
           spx csr evaluation delete --evaluation @my.test.result
           echo DELETED TEST.
+
+      # Delete all potentially sensitive config variables from build machine
+      - name: Delete Test configuration 
+        run: |
+          spx config @spx.defaults --set @@none
+          echo TEST CONFIGURATION DELETED
+  
       - name: Verify the configuration file exists
         run: az storage blob exists --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --auth-mode login | jq '.exists' | xargs -I {} echo "BENCHMARK_BLOB_EXISTS={}" >> $GITHUB_ENV
 
@@ -252,5 +261,5 @@ jobs:
       - name: Update benchmark in configuration file
         if: ${{ env.IS_BASELINE_TEST != 'true' || env.BENCHMARK_BLOB_EXISTS == 'false' || env.INITIAL_MODEL_EXISTS == 'false' }}
         run: |
-          echo test_json_${HYPHEN_EVENT_NAME}_${EVENT_ID} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
+          echo test_json_${UNDERSCORE_EVENT_NAME}_${EVENT_ID} > ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt
           az storage blob upload --account-name ${{ secrets.STORAGE_ACCOUNT_NAME }} --container-name configuration --name benchmark-test.txt --file ${TEST_BUILD_FOLDER_PATH}/benchmark-test.txt --auth-mode login
